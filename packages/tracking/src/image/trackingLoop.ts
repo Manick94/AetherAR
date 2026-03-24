@@ -1,9 +1,13 @@
-import type { ImageTrackerConfig, TrackingTick } from './types';
+import { createTargetStore, type ImageTarget } from './targetStore';
+import type { ImageTrackerConfig, TrackingSnapshot, TrackingTick } from './types';
 
 export interface ImageTrackingLoop {
   start(): void;
   stop(): void;
   onTick(handler: (tick: TrackingTick) => void): () => void;
+  addTarget(target: ImageTarget): void;
+  removeTarget(targetId: string): void;
+  snapshot(): TrackingSnapshot;
 }
 
 const DEFAULT_CONFIG: ImageTrackerConfig = {
@@ -21,9 +25,12 @@ export function createImageTrackingLoop(
 
   const handlers = new Set<(tick: TrackingTick) => void>();
   const frameBudgetMs = 1000 / Math.max(1, config.detectionFPS);
+  const targetStore = createTargetStore(config.maxConcurrentTargets);
+
   let frameId = 0;
   let active = false;
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  let lastTimestamp = 0;
 
   const tick = (): void => {
     if (!active) return;
@@ -33,10 +40,12 @@ export function createImageTrackingLoop(
 
     const payload: TrackingTick = {
       frameId,
-      deltaMs: frameBudgetMs,
-      timestamp: started
+      deltaMs: lastTimestamp === 0 ? frameBudgetMs : started - lastTimestamp,
+      timestamp: started,
+      activeTargets: targetStore.size()
     };
 
+    lastTimestamp = started;
     handlers.forEach((handler) => handler(payload));
 
     const elapsedMs = performance.now() - started;
@@ -48,6 +57,7 @@ export function createImageTrackingLoop(
     start() {
       if (active) return;
       active = true;
+      lastTimestamp = 0;
       tick();
     },
     stop() {
@@ -56,6 +66,19 @@ export function createImageTrackingLoop(
         clearTimeout(timeoutId);
         timeoutId = undefined;
       }
+    },
+    addTarget(target) {
+      targetStore.add(target);
+    },
+    removeTarget(targetId) {
+      targetStore.remove(targetId);
+    },
+    snapshot() {
+      return {
+        frameId,
+        timestamp: performance.now(),
+        targets: targetStore.list()
+      };
     },
     onTick(handler) {
       handlers.add(handler);

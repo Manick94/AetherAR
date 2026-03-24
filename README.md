@@ -2,14 +2,24 @@
 
 AetherAR is a modular, open-source WebAR engine designed to exceed MindAR-class performance on modern mobile browsers.
 
-## Current scope (Phase 1 foundation)
+## Current scope (Phases 1-3)
 
+### Phase 1 — foundation
 - Monorepo package boundaries for core engine, tracking, rendering, XR, adapters, and CLI.
 - Production-ready TypeScript project references for incremental builds.
-- Engine kernel with lifecycle and plugin system.
-- Tracking scheduler with decoupled detection FPS timing.
-- Rendering and XR interfaces to unblock parallel implementation.
-- React adapter shell for declarative API expansion.
+- Engine kernel lifecycle and plugin registration contracts.
+
+### Phase 2 — runtime + tracking primitives
+- Runtime event bus + frame clock to power plugin frame callbacks.
+- Expanded runtime context (`bus`, clock-backed timing).
+- Tracking target store with immutable snapshot support.
+- Tracking loop telemetry (`activeTargets`, precise deltas).
+
+### Phase 3 — integration scaffolding
+- Rendering loop abstraction + no-op renderer implementation.
+- XR runtime placeholder (`MockXRRuntime`) for capability wiring.
+- React provider + hook (`useAetherEngine`) and optional auto-start.
+- CLI command outputs now machine-readable JSON for automation.
 
 ## Monorepo layout
 
