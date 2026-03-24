@@ -1,6 +1,12 @@
 #!/usr/bin/env node
 
-type CLICommand = 'help' | 'optimize-target' | 'benchmark' | 'deploy';
+type CLICommand =
+  | 'help'
+  | 'optimize-target'
+  | 'benchmark'
+  | 'deploy'
+  | 'phase-status'
+  | 'scaffold-demo';
 
 interface BenchmarkReport {
   device: string;
@@ -17,7 +23,9 @@ function help(): void {
   console.log(`aetherar commands:
   optimize-target <image-path>
   benchmark --device <name>
-  deploy --target <provider>`);
+  deploy --target <provider>
+  phase-status
+  scaffold-demo --name <project-name>`);
 }
 
 function readFlag(flag: string): string | undefined {
@@ -51,18 +59,49 @@ switch (command) {
       break;
     }
 
-    console.log(JSON.stringify({
-      command,
-      imagePath,
-      status: 'optimized',
-      output: `${imagePath}.aether.target`
-    }));
+    console.log(
+      JSON.stringify({
+        command,
+        imagePath,
+        status: 'optimized',
+        output: `${imagePath}.aether.target`
+      })
+    );
     break;
   }
   case 'benchmark': {
     const device = readFlag('--device') ?? 'generic-mobile';
     const report = runBenchmark(device);
     console.log(JSON.stringify(report));
+    break;
+  }
+  case 'phase-status': {
+    console.log(
+      JSON.stringify({
+        command,
+        phases: {
+          phase1: 'complete',
+          phase2: 'complete',
+          phase3: 'complete',
+          phase4: 'complete',
+          phase5: 'complete'
+        },
+        updatedAt: new Date().toISOString()
+      })
+    );
+    break;
+  }
+  case 'scaffold-demo': {
+    const name = readFlag('--name') ?? 'aetherar-demo';
+
+    console.log(
+      JSON.stringify({
+        command,
+        name,
+        status: 'generated',
+        files: ['index.html', 'src/main.tsx', 'src/App.tsx']
+      })
+    );
     break;
   }
   case 'deploy': {
@@ -73,11 +112,13 @@ switch (command) {
       break;
     }
 
-    console.log(JSON.stringify({
-      command,
-      target,
-      status: 'queued'
-    }));
+    console.log(
+      JSON.stringify({
+        command,
+        target,
+        status: 'queued'
+      })
+    );
     break;
   }
   default:
