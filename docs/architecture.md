@@ -1,4 +1,4 @@
-# AetherAR Architecture (v0 foundation)
+# AetherAR Architecture (v0.5)
 
 ## Design principles
 
@@ -18,14 +18,16 @@ Camera -> Tracking Loop -> Pose Stream -> XR Space -> Renderer -> UI Adapter
 
 - `core`: lifecycle state machine, plugin registration, runtime bus, frame clock.
 - `tracking`: image/face/world tracker schedulers, target store abstractions, snapshots.
-- `rendering`: renderer interface, no-op renderer baseline, render loop contract.
-- `xr`: WebXR session abstractions and mock runtime for integration testing.
+- `rendering`: renderer interface, baseline no-op renderer, adaptive loop + frame telemetry.
+- `xr`: WebXR session abstractions, browser runtime, mock runtime for integration testing.
 - `adapters/react`: declarative component bridge and engine context hooks.
-- `tools/cli`: target optimization, benchmark reporting, deployment command scaffolding.
+- `tools/cli`: target optimization, benchmark reporting, phase status, demo scaffolding metadata.
+- `apps/demo`: Vite React console for demos, stakeholder presentations, and integration smoke tests.
 
-## Performance strategy (initial)
+## Performance strategy
 
-- Separate `detectionFPS` from `requestAnimationFrame` to preserve visual smoothness.
+- Separate `detectionFPS` from visual frame cadence to preserve smooth animation.
 - Maintain immutable snapshots for tracking outputs to avoid mutation stalls.
 - Build around typed arrays and transferable objects to support future worker offload.
 - Keep renderer and tracker loops independent so heavy CV frames do not block visual throughput.
+- Adaptive renderer allows reducing target FPS to keep thermal/perf budgets predictable.
