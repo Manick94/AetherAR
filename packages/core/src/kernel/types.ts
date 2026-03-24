@@ -1,3 +1,5 @@
+import type { RuntimeBus } from './runtimeBus';
+
 export type EnginePerformanceMode = 'quality' | 'balanced' | 'performance';
 
 export interface AetherEngineOptions {
@@ -10,4 +12,5 @@ export type EngineState = 'idle' | 'initializing' | 'ready' | 'running' | 'stopp
 export interface RuntimeContext {
   readonly startedAt: number;
   readonly now: () => number;
+  readonly bus: RuntimeBus;
 }

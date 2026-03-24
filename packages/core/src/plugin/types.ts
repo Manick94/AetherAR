@@ -5,4 +5,5 @@ export interface AetherPlugin {
   setup?(context: RuntimeContext): void | Promise<void>;
   onStart?(context: RuntimeContext): void | Promise<void>;
   onStop?(context: RuntimeContext): void | Promise<void>;
+  onFrame?(context: RuntimeContext): void | Promise<void>;
 }
