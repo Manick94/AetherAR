@@ -3,7 +3,12 @@
   "compilerOptions": {
     "composite": true,
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    "types": ["node"],
+    "paths": {
+      "@aetherar/tracking": ["../../tracking/src/index.ts"]
+    }
   },
+  "references": [{ "path": "../../tracking" }],
   "include": ["src"]
 }

@@ -19,7 +19,12 @@ export class BrowserXRRuntime implements XRRuntime {
       return false;
     }
 
-    return navigator.xr.isSessionSupported(this.sessionMode);
+    const xr = navigator.xr;
+    if (!xr) {
+      return false;
+    }
+
+    return xr.isSessionSupported(this.sessionMode);
   }
 
   public async start(config: XRSessionConfig): Promise<void> {
@@ -36,7 +41,12 @@ export class BrowserXRRuntime implements XRRuntime {
     const requiredFeatures = config.required.map((item) => CAPABILITY_FEATURE_MAP[item]);
     const optionalFeatures = (config.optional ?? []).map((item) => CAPABILITY_FEATURE_MAP[item]);
 
-    const session = await navigator.xr.requestSession(this.sessionMode, {
+    const xr = navigator.xr;
+    if (!xr) {
+      throw new Error('WebXR is not available on this navigator.');
+    }
+
+    const session = await xr.requestSession(this.sessionMode, {
       requiredFeatures,
       optionalFeatures,
       domOverlay: config.domOverlayRoot ? { root: config.domOverlayRoot } : undefined

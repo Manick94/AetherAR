@@ -1,41 +1,48 @@
 # AetherAR
 
-AetherAR is a modular, open-source WebAR engine designed to exceed MindAR-class performance on modern mobile browsers.
+AetherAR is a modular WebAR starter for teams that want to ship browser-based AR experiences with a clean TypeScript architecture.
 
-## Current scope (Phases 1-5)
+Today the repo gives you:
 
-### Phase 1 — foundation
-- Monorepo package boundaries for core engine, tracking, rendering, XR, adapters, and CLI.
-- Production-ready TypeScript project references for incremental builds.
-- Engine kernel lifecycle and plugin registration contracts.
+- `@aetherar/core` for engine lifecycle and plugin orchestration
+- `@aetherar/tracking` for image-target scheduling, target stores, and pose snapshots
+- `@aetherar/rendering` for adaptive render loops and a new Three.js renderer
+- `@aetherar/xr` for browser WebXR capability checks and session startup
+- `@aetherar/react` for a React app shell around the engine
+- `@aetherar/cli` for compiling NFT image targets and workflow automation
+- `apps/demo` for a working image-tracking + 3D scene demo
 
-### Phase 2 — runtime + tracking primitives
-- Runtime event bus + frame clock to power plugin frame callbacks.
-- Expanded runtime context (`bus`, clock-backed timing).
-- Tracking target store with immutable snapshot support.
-- Tracking loop telemetry (`activeTargets`, precise deltas).
+## What You Can Build
 
-### Phase 3 — integration scaffolding
-- Rendering loop abstraction + no-op renderer implementation.
-- XR runtime placeholder (`MockXRRuntime`) for capability wiring.
-- React provider + hook (`useAetherEngine`) and optional auto-start.
-- CLI command outputs now machine-readable JSON for automation.
+- Image-tracked product reveals
+- Poster and packaging activations
+- WebXR-enhanced demo apps
+- Three.js-based AR scenes with glTF models
 
-### Phase 4 — production runtime adapters
-- Browser-native WebXR runtime (`BrowserXRRuntime`) with required/optional capability mapping.
-- XR session status API (`getStatus`) for dashboards and diagnostics.
-- Adaptive render loop that supports dynamic target FPS and frame-time statistics.
+## Quick Start
 
-### Phase 5 — demo + DX expansion
-- New frontend demo app (`apps/demo`) for presentations, smoke tests, and onboarding.
-- CLI status and demo scaffolding commands (`phase-status`, `scaffold-demo`).
-- Updated docs for contributors building real-world WebAR proof-of-concepts.
+```bash
+npm install
+npm run typecheck
+npm run build
+```
 
-## Monorepo layout
+## Run The Demo
+
+```bash
+npm install
+npm run demo:dev
+```
+
+Open the Vite URL that prints in the terminal, usually `http://localhost:5173`.
+
+The demo currently uses a simulated image-target lock so you can validate the tracking/rendering pipeline before plugging in a production CV backend.
+
+## Packages
 
 ```txt
 apps/
-└── demo                # Vite + React demo console for demos/presentations
+└── demo
 
 packages/
 ├── core
@@ -46,83 +53,171 @@ packages/
 └── tools/cli
 ```
 
-## Quick start
-
-```bash
-npm install
-npm run typecheck
-npm run build
-```
-
-## Run the demo app
-
-```bash
-npm install
-npm run demo:dev
-```
-
-Then open the local Vite URL in your browser (usually `http://localhost:5173`).
-
-## Example: boot engine with plugin + tracker
+## Three.js + Image Tracking Example
 
 ```ts
 import { AetherEngine } from '@aetherar/core';
+import {
+  ThreeSceneRenderer,
+  createAdaptiveRenderLoop,
+  createHologramModel,
+  applyObjectPose
+} from '@aetherar/rendering';
 import { createImageTrackingLoop } from '@aetherar/tracking';
 
 const engine = new AetherEngine({ performance: 'balanced' });
-const tracking = createImageTrackingLoop({ detectionFPS: 30 });
+const tracking = createImageTrackingLoop({ detectionFPS: 24 });
+const renderer = new ThreeSceneRenderer();
+const model = createHologramModel();
 
-tracking.onTick(({ frameId }) => {
-  console.log('track frame', frameId);
+tracking.addTarget({ id: 'poster', width: 1080, height: 1920 });
+renderer.add(model);
+
+tracking.onSnapshot((snapshot) => {
+  const poster = snapshot.targets.find((target) => target.id === 'poster');
+
+  if (!poster || poster.observation.state !== 'tracked') {
+    applyObjectPose(model, { visible: false });
+    return;
+  }
+
+  applyObjectPose(model, {
+    visible: true,
+    position: poster.observation.pose.position,
+    rotation: poster.observation.pose.rotation,
+    scale: poster.observation.pose.scale
+  });
+});
+
+const renderLoop = createAdaptiveRenderLoop({
+  renderer,
+  targetFPS: 60,
+  viewport: {
+    width: () => window.innerWidth,
+    height: () => window.innerHeight
+  }
 });
 
 await engine.initialize();
 tracking.start();
+renderLoop.start();
 await engine.start();
 ```
 
-## Example: start real WebXR runtime
+## Compile NFT Image Targets
+
+AetherAR now includes a MindAR-style NFT compiler flow for natural-feature image targets.
+
+Compile one image:
+
+```bash
+npx aetherar optimize-target ./assets/poster.png --physical-width-mm 180
+```
+
+Compile multiple images or a whole directory into one manifest:
+
+```bash
+npx aetherar compile-nft ./assets/targets --out ./targets/launch-campaign.aether.nft.json --name launch-campaign
+```
+
+The generated manifest includes:
+
+- stable target ids
+- width and height metadata
+- file fingerprints
+- tracking quality warnings
+- recommended tracking profile, scale, and detection FPS
+
+Supported source formats: `png`, `jpg`, `jpeg`, `gif`, `webp`.
+
+## Load A Compiled NFT Manifest
 
 ```ts
-import { BrowserXRRuntime } from '@aetherar/xr';
+import { createImageTargetsFromNFTManifest } from '@aetherar/tracking';
+import manifest from './targets/launch-campaign.aether.nft.json';
 
-const xr = new BrowserXRRuntime('immersive-ar');
+const runtimeTargets = createImageTargetsFromNFTManifest(manifest);
 
-if (await xr.isSupported()) {
-  await xr.start({
-    required: ['hit-test'],
-    optional: ['anchors', 'light-estimation']
-  });
+for (const target of runtimeTargets) {
+  tracking.addTarget(target);
 }
 ```
 
-## CLI examples
+## Run The Matching Backend
+
+The compiled manifest is now matcher-ready. You can feed camera frames or any `ImageData`-like RGBA buffer into the backend and receive stable target observations.
+
+```ts
+import {
+  applyBackendFrameToTrackingLoop,
+  createNFTTrackingBackend,
+  createImageTrackingLoop
+} from '@aetherar/tracking';
+import manifest from './targets/launch-campaign.aether.nft.json';
+
+const tracking = createImageTrackingLoop({ detectionFPS: 24 });
+const backend = createNFTTrackingBackend(manifest, {
+  minConfidence: 0.74,
+  smoothing: 0.35
+});
+
+const frame = {
+  width: cameraWidth,
+  height: cameraHeight,
+  data: rgbaPixels,
+  channels: 4 as const
+};
+
+const result = backend.processFrame(frame);
+applyBackendFrameToTrackingLoop(tracking, result);
+```
+
+## Load Your Own 3D Model
+
+`ThreeSceneRenderer` includes `loadGLTFModel()` for glTF and GLB assets:
+
+```ts
+const productModel = await renderer.loadGLTFModel('/models/product.glb', {
+  scale: 0.6,
+  position: { x: 0, y: 0, z: -1.4 }
+});
+
+renderer.add(productModel);
+```
+
+## Demo Highlights
+
+- React-powered app shell with `AetherAR`
+- Adaptive Three.js render loop
+- Matcher-ready NFT target descriptors in compiled manifests
+- Image-target snapshot API with confidence, pose, and active target ids
+- Responsive demo stage for desktop and mobile
+- WebXR capability signal for progressive enhancement
+
+## Typical Workflow
+
+1. Create an engine with `@aetherar/core`.
+2. Compile NFT targets with `aetherar compile-nft`.
+3. Feed camera frames into `createNFTTrackingBackend`.
+4. Render anchored content with `ThreeSceneRenderer`.
+5. Load glTF models with `loadGLTFModel()` or start with `createHologramModel()`.
+6. Use `@aetherar/react` to wrap your app and expose the engine context.
+
+## CLI
 
 ```bash
-# Benchmark profile
+node packages/tools/cli/dist/index.js compile-nft ./assets/targets --out ./targets/catalog.aether.nft.json
 node packages/tools/cli/dist/index.js benchmark --device "Pixel 8"
-
-# Show roadmap implementation status
 node packages/tools/cli/dist/index.js phase-status
-
-# Scaffold a demo stub manifest
 node packages/tools/cli/dist/index.js scaffold-demo --name my-webar-demo
 ```
 
-## Building your next WebAR project quickly
+## Notes
 
-1. Start with `@aetherar/core` + `@aetherar/tracking` for runtime + CV cadence.
-2. Add `@aetherar/rendering` adaptive loop to maintain smooth visuals under load.
-3. Integrate `@aetherar/xr` to progressively enable browser XR capabilities.
-4. Use `@aetherar/react` as your declarative app shell for feature demos.
-5. Copy `apps/demo` as a baseline for product demos and stakeholder presentations.
-
-## Roadmap highlights
-
-- WASM CV modules for ORB/AKAZE + feature compression
-- WebXR session runtime + anchors/hit-test ✅
-- Shared AR networking + cloud anchors
-- React/Vue/Svelte adapters
+- The included tracking loop is framework-ready, but the demo target acquisition is still simulated.
+- The NFT compiler now embeds matcher descriptors and the tracking package includes a baseline natural-feature matcher written in TypeScript.
+- The renderer and tracking loops intentionally run at different cadences so heavy tracking work does not stall visuals.
+- `BrowserXRRuntime` is available for capability checks and future immersive AR session wiring.
 
 ## License
 

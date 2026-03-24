@@ -3,7 +3,14 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "types": ["vite/client"],
-    "baseUrl": "."
+    "baseUrl": ".",
+    "paths": {
+      "@aetherar/core": ["../../packages/core/src/index.ts"],
+      "@aetherar/react": ["../../packages/adapters/react/src/index.ts"],
+      "@aetherar/tracking": ["../../packages/tracking/src/index.ts"],
+      "@aetherar/rendering": ["../../packages/rendering/src/index.ts"],
+      "@aetherar/xr": ["../../packages/xr/src/index.ts"]
+    }
   },
-  "include": ["src"]
+  "include": ["src", "../../packages/xr/src/session/webxr-shim.d.ts"]
 }

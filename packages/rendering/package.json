@@ -3,5 +3,11 @@
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts"
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "three": "^0.181.1"
+  },
+  "devDependencies": {
+    "@types/three": "^0.183.1"
+  }
 }
