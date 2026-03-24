@@ -1,0 +1,19 @@
+{
+  "name": "aetherar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Next-generation open source WebAR engine monorepo",
+  "workspaces": [
+    "packages/*",
+    "packages/adapters/*",
+    "packages/tools/*"
+  ],
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "typecheck": "tsc -b tsconfig.json --pretty false",
+    "clean": "git clean -xdf -e node_modules"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

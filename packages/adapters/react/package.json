@@ -1,0 +1,13 @@
+{
+  "name": "@aetherar/react",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "dependencies": {
+    "@aetherar/core": "0.1.0"
+  }
+}
