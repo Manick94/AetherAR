@@ -1,0 +1,11 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/tracking" },
+    { "path": "./packages/rendering" },
+    { "path": "./packages/xr" },
+    { "path": "./packages/adapters/react" },
+    { "path": "./packages/tools/cli" }
+  ]
+}
